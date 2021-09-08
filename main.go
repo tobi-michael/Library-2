@@ -1,4 +1,4 @@
-package Main
+package main
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type Book struct {
 var dbClient *mongo.Client
 var Books []Book
 
-func main() {
+func main () {
 	// connect to the database
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -46,6 +46,7 @@ func main() {
 
 	router.POST("/createUser", createUserHandler)
 	router.GET("/getUser/:name", getSingleUserHandler)
+	router.GET("/getUsers", getAllUserHandler)
 	router.PATCH("/updateUser", updateUserHandler)
 	router.DELETE("/deleteUser", deleteuserhandler)
 
@@ -87,47 +88,57 @@ func createUserHandler(c *gin.Context) {
 	})
 }
 
-var User = Books
-
 func getSingleUserHandler(c *gin.Context) {
-	name := c.Param("Book")
+	// get the value passed from the client
+	name := c.Param("name")
 
-	fmt.Println("Book", name)
-	var Books Book
+	fmt.Println("name", name)
 
+	// create an empty user
+	var user Book
+	// initialize a boolean variable as false
 	userAvailable := false
 
-	for _, value := range name {
+	// loop through the users array to find a match
+	for _, value := range Books  {
 
 		// check the current iteration of users
 		// check if the name matches the client request
 		if value.Name == name {
-
 			// if it matches assign the value to the empty user object we created
 			user = value
+
+			// set user available boolean to true since there was a match
 			userAvailable = true
 		}
 	}
 
-
 	// if no match was found
-	// the empty use we created would still be empty
+	// the userAvailable would still be false, if so return a not found error
 	// check if user is empty, if so return a not found error
-
 	if !userAvailable {
 		c.JSON(404, gin.H{
 			"error": "no user with name found: " + name,
 		})
 		return
 	}
+
 	c.JSON(200, gin.H{
 		"message": "success",
-		"data": Books,
+		"data": user,
+	})
+}
+
+
+
+func getAllUserHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "Welcome!",
+		"data":    Books ,
 	})
 }
 
 func updateUserHandler(c *gin.Context) {
-	fmt.Println("bjbj")
 	c.JSON(200, gin.H{
 		"message": "User updated!",
 	})
