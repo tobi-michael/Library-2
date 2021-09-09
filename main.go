@@ -44,11 +44,11 @@ func main () {
 
 	// CRUD endpoints for data
 
-	router.POST("/createUser", createUserHandler)
-	router.GET("/getUser/:name", getSingleUserHandler)
-	router.GET("/getUsers", getAllUserHandler)
-	router.PATCH("/updateUser", updateUserHandler)
-	router.DELETE("/deleteUser", deleteuserhandler)
+	router.POST("/createRecord", createRecordHandler)
+	router.GET("/getRecord/:name", getSingleRecordHandler)
+	router.GET("/getRecords", getAllRecordHandler)
+	router.PATCH("/updateRecord", updateRecordHandler)
+	router.DELETE("/deleteRecord", deleteRecordhandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -57,7 +57,7 @@ func main () {
 	_= router.Run(":" + port)
 
 }
-func createUserHandler(c *gin.Context) {
+func createRecordHandler (c *gin.Context) {
 
 	var Book Book
 
@@ -73,31 +73,31 @@ func createUserHandler(c *gin.Context) {
 	Books  = append(Books, Book)
 	_, err = dbClient.Database("library").Collection("shenking books").InsertOne(context.Background(),Book)
 	if err != nil {
-		fmt.Println("error saving Book", err)
+		fmt.Println("error saving Book record", err)
 		//	if saving ws not successful
 		c.JSON(500, gin.H{
-			"error": "Could not process request, could not save user",
+			"error": "Could not process request, could not save record",
 		})
 		return
 	}
 
 	fmt.Println("here", err)
 	c.JSON(200, gin.H{
-		"message": "successfully created user",
+		"message": "successfully created record",
 		"data": Book,
 	})
 }
 
-func getSingleUserHandler(c *gin.Context) {
+func getSingleRecordHandler (c *gin.Context) {
 	// get the value passed from the client
 	name := c.Param("name")
 
 	fmt.Println("name", name)
 
 	// create an empty user
-	var user Book
+	var record Book
 	// initialize a boolean variable as false
-	userAvailable := false
+	recordAvailable := false
 
 	// loop through the users array to find a match
 	for _, value := range Books  {
@@ -106,45 +106,45 @@ func getSingleUserHandler(c *gin.Context) {
 		// check if the name matches the client request
 		if value.Name == name {
 			// if it matches assign the value to the empty user object we created
-			user = value
+			record  = value
 
 			// set user available boolean to true since there was a match
-			userAvailable = true
+			recordAvailable = true
 		}
 	}
 
 	// if no match was found
 	// the userAvailable would still be false, if so return a not found error
 	// check if user is empty, if so return a not found error
-	if !userAvailable {
+	if !recordAvailable {
 		c.JSON(404, gin.H{
-			"error": "no user with name found: " + name,
+			"error": "no record with name found: " + name,
 		})
 		return
 	}
 
 	c.JSON(200, gin.H{
 		"message": "success",
-		"data": user,
+		"data": record,
 	})
 }
 
 
 
-func getAllUserHandler(c *gin.Context) {
+func getAllRecordHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "Welcome!",
 		"data":    Books ,
 	})
 }
 
-func updateUserHandler(c *gin.Context) {
+func updateRecordHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"message": "User updated!",
+		"message": "record updated!",
 	})
 }
-func deleteuserhandler(c *gin.Context) {
+func deleteRecordhandler(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"message": "user deleted!",
+		"message": "record deleted!",
 	})
 }
