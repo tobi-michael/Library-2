@@ -14,8 +14,8 @@ import (
 
 )
 type Book struct {
-	Name string  `json:"name"`
-	Author string  `json:"author"`
+	Name string  `json:"name" bson:"name" `
+	Author string  `json:"author" bson:"author" `
 }
 var dbClient *mongo.Client
 var Books []Book
