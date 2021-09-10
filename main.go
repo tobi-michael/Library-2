@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"os"
 	"time"
+
 )
 type Book struct {
 	Name string  `json:"name"`
@@ -47,8 +49,8 @@ func main () {
 	router.POST("/createRecord", createRecordHandler)
 	router.GET("/getRecord/:name", getSingleRecordHandler)
 	router.GET("/getRecords", getAllRecordHandler)
-	router.PATCH("/updateRecord", updateRecordHandler)
-	router.DELETE("/deleteRecord", deleteRecordhandler)
+	router.PATCH("/updateRecord/:name", updateRecordHandler)
+	router.DELETE("/deleteRecord/:name", deleteRecordhandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -139,11 +141,60 @@ func getAllRecordHandler(c *gin.Context) {
 }
 
 func updateRecordHandler(c *gin.Context) {
+	name := c.Param("name")
+
+	fmt.Println("name", name)
+
+	var record Book
+
+	err := c.ShouldBindJSON(&Books)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": "invalid request data",
+		})
+		return
+	}
+
+	filterQuery := bson.M{
+		"name": name,
+	}
+
+	updateQuery := bson.M{
+		"$set": bson.M{
+			"Name": record.Name,
+			"Author": record.Author,
+		},
+	}
+
+	_, err = dbClient.Database("library").Collection("shenking books").UpdateOne(context.Background(), filterQuery, updateQuery)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Could not process request, could not update user",
+		})
+		return
+	}
+
+
 	c.JSON(200, gin.H{
-		"message": "record updated!",
+		"message": "record updated",
+		"data": record,
 	})
 }
+
+
 func deleteRecordhandler(c *gin.Context) {
+	name := c.Param("name")
+
+	query := bson.M{
+		"name": name,
+	}
+	_, err := dbClient.Database("library").Collection("shenking books").DeleteOne(context.Background(), query)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Could not process request, could not delete user",
+		})
+		return
+	}
 	c.JSON(200, gin.H{
 		"message": "record deleted!",
 	})
