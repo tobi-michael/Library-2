@@ -18,7 +18,7 @@ type Book struct {
 	Author string  `json:"author" bson:"author" `
 }
 var dbClient *mongo.Client
-var Books []Book
+var record []Book
 
 func main () {
 	// connect to the database
@@ -42,6 +42,9 @@ func main () {
 
 	router := gin.Default()
 
+	// define a single endpoint
+	router.GET("/", recordhandler)
+
 
 
 	// CRUD endpoints for data
@@ -57,13 +60,18 @@ func main () {
 		port = "3000"
 	}
 	_= router.Run(":" + port)
+}
 
+func recordhandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "hello world",
+	})
 }
 func createRecordHandler (c *gin.Context) {
 
-	var Book Book
+	var record Book
 
-	err := c.ShouldBindJSON(&Book)
+	err := c.ShouldBindJSON(&record)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"error": "invalid request data",
@@ -72,8 +80,7 @@ func createRecordHandler (c *gin.Context) {
 
 	}
 
-	Books  = append(Books, Book)
-	_, err = dbClient.Database("library").Collection("shenking books").InsertOne(context.Background(),Book)
+	_, err = dbClient.Database("library").Collection("shenking books").InsertOne(context.Background(),record)
 	if err != nil {
 		fmt.Println("error saving Book record", err)
 		//	if saving ws not successful
@@ -86,7 +93,7 @@ func createRecordHandler (c *gin.Context) {
 	fmt.Println("here", err)
 	c.JSON(200, gin.H{
 		"message": "successfully created record",
-		"data": Book,
+		"data": record,
 	})
 }
 
@@ -94,31 +101,18 @@ func getSingleRecordHandler (c *gin.Context) {
 	// get the value passed from the client
 	name := c.Param("name")
 
-	fmt.Println("name", name)
-
 	// create an empty user
 	var record Book
-	// initialize a boolean variable as false
-	recordAvailable := false
-
-	// loop through the users array to find a match
-	for _, value := range Books  {
-
-		// check the current iteration of users
-		// check if the name matches the client request
-		if value.Name == name {
-			// if it matches assign the value to the empty user object we created
-			record  = value
-
-			// set user available boolean to true since there was a match
-			recordAvailable = true
-		}
+	query := bson.M{
+		"name": name,
 	}
+	err := dbClient.Database("library").Collection("shenking books").FindOne(context.Background(), query).Decode(&record)
 
 	// if no match was found
-	// the userAvailable would still be false, if so return a not found error
-	// check if user is empty, if so return a not found error
-	if !recordAvailable {
+	// err would not be nil
+	// so we return a user not found error
+	if err != nil {
+		fmt.Println("record not found", err)
 		c.JSON(404, gin.H{
 			"error": "no record with name found: " + name,
 		})
@@ -134,20 +128,37 @@ func getSingleRecordHandler (c *gin.Context) {
 
 
 func getAllRecordHandler(c *gin.Context) {
+	var records []Book
+
+	cursor, err := dbClient.Database("Library").Collection("shenking books").Find(context.Background(), bson.M{})
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Could not process request, couldn't get record ",
+		})
+		return
+	}
+
+	err = cursor.All(context.Background(), &records)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Could not process request, couldn't get users",
+		})
+		return
+	}
 	c.JSON(200, gin.H{
 		"message": "Welcome!",
-		"data":    Books ,
+		"data":    record ,
 	})
 }
 
 func updateRecordHandler(c *gin.Context) {
-	name := c.Param("name")
+	name := c.Param("Name")
 
-	fmt.Println("name", name)
+	fmt.Println("Name", name)
 
 	var record Book
 
-	err := c.ShouldBindJSON(&Books)
+	err := c.ShouldBindJSON(&record)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"error": "invalid request data",
@@ -156,7 +167,8 @@ func updateRecordHandler(c *gin.Context) {
 	}
 
 	filterQuery := bson.M{
-		"name": name,
+		"" +
+			"Name": name,
 	}
 
 	updateQuery := bson.M{
@@ -169,7 +181,7 @@ func updateRecordHandler(c *gin.Context) {
 	_, err = dbClient.Database("library").Collection("shenking books").UpdateOne(context.Background(), filterQuery, updateQuery)
 	if err != nil {
 		c.JSON(500, gin.H{
-			"error": "Could not process request, could not update user",
+			"error": "Could not process request, could not update record",
 		})
 		return
 	}
@@ -191,7 +203,7 @@ func deleteRecordhandler(c *gin.Context) {
 	_, err := dbClient.Database("library").Collection("shenking books").DeleteOne(context.Background(), query)
 	if err != nil {
 		c.JSON(500, gin.H{
-			"error": "Could not process request, could not delete user",
+			"error": "Could not process request, could not delete record",
 		})
 		return
 	}
